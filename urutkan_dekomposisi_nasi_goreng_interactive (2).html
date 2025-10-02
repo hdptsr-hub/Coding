@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Latihan: Urutkan Dekomposisi Membuat Nasi Goreng</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    body{max-width:700px;margin:32px auto;padding:16px;line-height:1.5;color:#111}
+    h1{font-size:1.6rem;margin-bottom:8px}
+    p.lead{color:#444;margin-top:0}
+    .card{border:1px solid #e6e6e6;border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,0.03)}
+    .list{background:#fafafa;padding:12px;border-radius:8px;min-height:320px;margin-top:12px}
+    .item{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #ddd;padding:10px;border-radius:8px;margin-bottom:10px;cursor:grab}
+    .item img{width:28px;height:28px;object-fit:contain}
+    .item[aria-grabbed="true"]{opacity:0.7}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+    button{padding:8px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer}
+    button.primary{background:#0b76ff;color:#fff;border-color:#0b76ff}
+    .hint{font-size:0.9rem;color:#666}
+    .result.ok{color:green;font-weight:600}
+    .result.wrong{color:#b22222;font-weight:600}
+  </style>
+</head>
+<body>
+  <h1>Latihan: Urutkan Dekomposisi Membuat <em>Nasi Goreng</em></h1>
+  <p class="lead">Tarik dan letakkan langkah-langkah menjadi urutan yang benar. Gunakan tombol untuk mengacak atau memeriksa jawaban.</p>
+
+  <div class="card">
+    <h2>Langkah (tarik untuk mengurutkan)</h2>
+    <div id="steps" class="list" aria-label="Langkah membuat nasi goreng, urutkan"></div>
+    <div class="controls">
+      <button id="shuffle">Acak</button>
+      <button id="check" class="primary">Periksa Urutan</button>
+      <button id="reset">Reset</button>
+      <div id="message" class="hint" style="margin-left:12px"></div>
+    </div>
+  </div>
+
+  <script>
+    // mapping langkah ke ikon sederhana (URL ikon bisa diganti sesuai kebutuhan)
+    const icons = {
+      'Siapkan bahan dan peralatan.': 'https://img.icons8.com/color/48/ingredients.png',
+      'Panaskan minyak di wajan.': 'https://img.icons8.com/color/48/frying-pan.png',
+      'Tumis bawang sampai harum.': 'https://img.icons8.com/color/48/onion.png',
+      'Masukkan protein (jika pakai) dan masak hingga matang.': 'https://img.icons8.com/color/48/chicken.png',
+      'Tambahkan telur dan orak-arik.': 'https://img.icons8.com/color/48/eggs.png',
+      'Masukkan nasi dingin, aduk rata.': 'https://img.icons8.com/color/48/rice-bowl.png',
+      'Tambahkan kecap, garam, dan bumbu lain; aduk sampai merata.': 'https://img.icons8.com/color/48/sauce.png',
+      'Cek rasa dan sajikan hangat.': 'https://img.icons8.com/color/48/serving-dish.png'
+    };
+
+    const correct = Object.keys(icons);
+
+    const pool = [
+      'Masukkan protein (jika pakai) dan masak hingga matang.',
+      'Tambahkan kecap, garam, dan bumbu lain; aduk sampai merata.',
+      'Siapkan bahan dan peralatan.',
+      'Tumis bawang sampai harum.',
+      'Masukkan nasi dingin, aduk rata.',
+      'Cek rasa dan sajikan hangat.',
+      'Panaskan minyak di wajan.',
+      'Tambahkan telur dan orak-arik.'
+    ];
+
+    const listEl = document.getElementById('steps');
+    const messageEl = document.getElementById('message');
+
+    function createItem(text){
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.setAttribute('draggable','true');
+      div.tabIndex = 0;
+
+      const img = document.createElement('img');
+      img.src = icons[text] || 'https://img.icons8.com/color/48/question-mark.png';
+      img.alt = '';
+
+      const span = document.createElement('span');
+      span.textContent = text;
+
+      div.appendChild(img);
+      div.appendChild(span);
+
+      div.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', text);
+        div.setAttribute('aria-grabbed','true');
+      });
+      div.addEventListener('dragend', () => div.setAttribute('aria-grabbed','false'));
+
+      div.addEventListener('keydown', e => {
+        if(e.key === 'ArrowUp') moveUp(div);
+        if(e.key === 'ArrowDown') moveDown(div);
+      });
+
+      return div;
+    }
+
+    function render(items){
+      listEl.innerHTML = '';
+      items.forEach(it => listEl.appendChild(createItem(it)));
+
+      listEl.querySelectorAll('.item').forEach(item => {
+        item.addEventListener('dragover', e => e.preventDefault());
+        item.addEventListener('drop', e => {
+          e.preventDefault();
+          const draggedText = e.dataTransfer.getData('text/plain');
+          const dragged = Array.from(listEl.children).find(c => c.querySelector('span').textContent === draggedText);
+          if(!dragged) return;
+          listEl.insertBefore(dragged, item);
+        });
+      });
+    }
+
+    function shuffleArray(a){
+      for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+    }
+
+    function getCurrent(){
+      return Array.from(listEl.children).map(n => n.querySelector('span').textContent);
+    }
+
+    function checkAnswer(){
+      const current = getCurrent();
+      let all = true;
+      let firstWrongIndex = -1;
+      for(let i=0;i<correct.length;i++){
+        if(current[i] !== correct[i]){ all=false; if(firstWrongIndex===-1) firstWrongIndex=i; }
+      }
+      if(all){
+        messageEl.textContent = 'Bagus! Urutan benar ✅';
+        messageEl.className = 'result ok';
+      } else {
+        messageEl.textContent = 'Ada yang perlu diperbaiki. Mulai dari langkah ke ' + (firstWrongIndex+1) + '.';
+        messageEl.className = 'result wrong';
+      }
+    }
+
+    function reset(){ render(correct.slice()); messageEl.textContent=''; messageEl.className='hint'; }
+    function randomize(){ const arr = pool.slice(); shuffleArray(arr); render(arr); messageEl.textContent='Urutan sudah diacak.'; messageEl.className='hint'; }
+
+    function moveUp(el){
+      const prev = el.previousElementSibling;
+      if(prev) el.parentNode.insertBefore(el, prev);
+    }
+    function moveDown(el){
+      const next = el.nextElementSibling;
+      if(next) el.parentNode.insertBefore(next, el);
+    }
+
+    reset();
+
+    document.getElementById('shuffle').addEventListener('click', randomize);
+    document.getElementById('check').addEventListener('click', checkAnswer);
+    document.getElementById('reset').addEventListener('click', reset);
+  </script>
+</body>
+</html>
